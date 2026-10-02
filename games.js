@@ -87,8 +87,14 @@ export function dexText() {
 }
 
 // ── 메뉴 ──
-const button = (text, action_id, style) => ({ type: 'button', text: { type: 'plain_text', text }, action_id, ...(style && { style }) })
-const menu = {
+const button = (text, action_id, style, value) => ({
+  type: 'button', text: { type: 'plain_text', text }, action_id, ...(style && { style }), ...(value && { value }),
+})
+const AUTO_GAP = 20 * SEC // 자동 모드: 한 판 끝나고 다음 판까지
+const AUTO_GAMES = [['bomb', '💣 폭탄'], ['quiz', '🔤 퀴즈'], ['spawn', '👾 야생']]
+const autoOn = (key) => setting(`auto_${key}`) === 'on'
+
+const menu = () => ({
   text: '🕹️ 쾌락실',
   blocks: [
     { type: 'header', text: { type: 'plain_text', text: '🕹️ 쾌락실 개장! 이 채널에서 놀아요' } },
@@ -100,7 +106,6 @@ const menu = {
           '💣 *폭탄 돌리기*  폭탄을 받으면 다른 사람을 @멘션해서 넘기세요. 터지면 폭사 기록 +1 💀',
           '👾 *야생 출몰*  채팅하다 보면 가끔 나타나요. 리액션을 제일 먼저 누르면 포획!',
           '🔤 *초성 퀴즈*  매일 12시에 출제. 채팅으로 정답을 치면 1점, 주간 1등은 퀴즈왕 👑',
-          '🎲 *자동 모드*  켜져 있으면 2분마다 셋 중 아무거나 랜덤으로 터져요 (지금 켜짐)',
         ].join('\n'),
       },
     },
@@ -111,11 +116,16 @@ const menu = {
         button('🔤 퀴즈 내기', 'game_quiz', 'primary'),
         button('📕 도감', 'game_dex'),
         button('🏆 랭킹', 'game_rank'),
-        button('⏯ 자동 켜기/끄기', 'game_auto'),
       ],
     },
+    { type: 'context', elements: [{ type: 'mrkdwn', text: `🎲 *자동 모드*  켜 둔 게임은 한 판 끝나면 ${AUTO_GAP / SEC}초 뒤에 다음 판이 시작돼요` }] },
+    {
+      type: 'actions',
+      elements: AUTO_GAMES.map(([key, label]) =>
+        button(`${label} 자동 ${autoOn(key) ? '켜짐' : '꺼짐'}`, 'auto_toggle', autoOn(key) ? 'primary' : undefined, key)),
+    },
   ],
-}
+})
 
 export async function registerGames(app) {
   const me = (await app.client.auth.test()).user_id
@@ -126,6 +136,7 @@ export async function registerGames(app) {
   const update = (ts, text) => app.client.chat.update({ channel: channel(), ts, text }).catch(warn)
   const NOT_POSTED = '⚠️ 채널에 글을 못 올렸어요. 봇이 이 채널에 초대돼 있는지 확인해 주세요'
   const seen = new Map() // 게임 채널에서 최근 말한 사람 → 시각
+  const ended = { bomb: 0, quiz: 0, spawn: 0 } // 게임별 마지막으로 끝난(또는 시작한) 시각
 
   // ── 💣 ── 진행 중인 게임 상태는 메모리에만 있음: 봇을 껐다 켜면 돌던 폭탄·퀴즈·몬스터는 사라짐
   let bomb = null
@@ -157,6 +168,7 @@ export async function registerGames(app) {
   function explode() {
     const { holder, passes } = bomb
     bomb = null
+    ended.bomb = Date.now()
     db.prepare('insert into deaths values (?, ?)').run(holder, Date.now())
     post(`💥 펑!!! <@${holder}> 님이 폭사했어요 (${passes}번 오갔어요) 💀`)
   }
@@ -175,6 +187,7 @@ export async function registerGames(app) {
     m.timer = setTimeout(() => {
       if (wild !== m) return
       wild = null
+      ended.spawn = Date.now()
       update(m.ts, `💨 야생의 :${m.emoji}: 이(가) 도망쳤다…`)
     }, MIN)
   }
@@ -183,6 +196,7 @@ export async function registerGames(app) {
     const m = wild
     if (!m || event.user === me || event.item.ts !== m.ts) return
     wild = null
+    ended.spawn = Date.now()
     clearTimeout(m.timer)
     db.prepare('insert into dex values (?, ?, ?)').run(event.user, m.emoji, Date.now())
     await update(m.ts, `🎉 <@${event.user}> 님이 :${m.emoji}: *[${m.grade}]* 포획!  (도감 ${dexCount(event.user)}/${MONSTERS.length})`)
@@ -201,12 +215,14 @@ export async function registerGames(app) {
     q.timer = setTimeout(() => {
       if (quiz !== q) return
       quiz = null
+      ended.quiz = Date.now()
       post(`⏰ 시간 끝! 정답은 *${q.answer}* 였어요`)
     }, 3 * MIN)
   }
   function solveQuiz(user) {
     const q = quiz
     quiz = null
+    ended.quiz = Date.now()
     clearTimeout(q.timer)
     db.prepare('insert into quiz_wins values (?, ?)').run(user, Date.now())
     post(`🎯 정답! <@${user}> 님 *${q.answer}*  (+1점 · 이번 주 ${weeklyWins(user)}점)`)
@@ -221,21 +237,17 @@ export async function registerGames(app) {
     startQuiz()
   }, 30 * SEC)
 
-  // ── 🎲 자동 모드: 2분마다 아무 게임이나 ──
-  const hasRecent = () => [...seen.values()].some((t) => Date.now() - t < HOUR)
-  function autoLoop() {
-    setTimeout(async () => {
-      try {
-        if (setting('auto') === 'on' && channel()) {
-          await pick([startQuiz, spawn, ...(hasRecent() ? [() => startBomb()] : [])])()
-        }
-      } catch (e) {
-        console.error('자동 게임 실패', e)
-      }
-      autoLoop()
-    }, 2 * MIN)
-  }
-  autoLoop()
+  // ── 🎲 게임별 자동 모드: 켜 둔 게임은 끝나고 AUTO_GAP 뒤에 다음 판 ──
+  const auto = { bomb: () => startBomb(), quiz: startQuiz, spawn }
+  const busy = { bomb: () => bomb, quiz: () => quiz, spawn: () => wild }
+  setInterval(() => {
+    if (!channel()) return
+    for (const [key, start] of Object.entries(auto)) {
+      if (!autoOn(key) || busy[key]() || Date.now() - ended[key] < AUTO_GAP) continue
+      ended[key] = Date.now() // 시작이 실패해도(채팅한 사람 없음 등) AUTO_GAP 뒤에 다시 시도
+      Promise.resolve(start()).catch((e) => console.error('자동 게임 실패', e))
+    }
+  }, 5 * SEC)
 
   // ── 채팅 ──
   app.message(async ({ message }) => {
@@ -255,9 +267,9 @@ export async function registerGames(app) {
   app.command('/game', async ({ command, ack, respond }) => {
     await ack()
     setSetting('channel', command.channel_id)
-    setSetting('auto', 'on')
+    for (const [key] of AUTO_GAMES) setSetting(`auto_${key}`, 'on')
     // 봇이 직접 올려 봐서 실패하면 아직 채널에 없는 것
-    const posted = await app.client.chat.postMessage({ channel: command.channel_id, ...menu }).catch(() => null)
+    const posted = await app.client.chat.postMessage({ channel: command.channel_id, ...menu() }).catch(() => null)
     if (!posted) await respond({ response_type: 'ephemeral', text: '⚠️ 봇이 아직 이 채널에 없어요. `/invite @봇이름`으로 먼저 부르고 `/game`을 다시 쳐 주세요' })
   })
 
@@ -267,12 +279,16 @@ export async function registerGames(app) {
     game_quiz: () => startQuiz(),
     game_dex: () => dexText(),
     game_rank: () => rankingText(),
-    game_auto: () => {
-      const on = setting('auto') !== 'on'
-      setSetting('auto', on ? 'on' : 'off')
-      post(on ? '🎲 자동 모드 켜짐! 이제 2분마다 뭔가 터져요' : '⏸ 자동 모드 꺼짐. 버튼으로만 놀 수 있어요')
-    },
   }
+  app.action('auto_toggle', async ({ ack, action, respond }) => {
+    await ack()
+    const on = !autoOn(action.value)
+    setSetting(`auto_${action.value}`, on ? 'on' : 'off')
+    await respond({ replace_original: true, ...menu() })
+    const label = AUTO_GAMES.find(([key]) => key === action.value)[1]
+    post(on ? `🎲 ${label} 자동 켜짐! 끝나면 ${AUTO_GAP / SEC}초 뒤에 다음 판` : `⏸ ${label} 자동 꺼짐`)
+  })
+
   for (const [id, run] of Object.entries(actions)) {
     app.action(id, async (args) => {
       await args.ack()
