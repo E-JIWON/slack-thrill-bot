@@ -109,7 +109,7 @@ const menu = () => ({
       button('💣 지금 던지기', 'game_bomb', 'danger'), autoButton('bomb')),
     ...gameRow('🔤 *초성 퀴즈*  채팅으로 정답을 치면 1점, 주간 1등은 퀴즈왕 👑',
       button('🔤 지금 내기', 'game_quiz', 'primary'), autoButton('quiz')),
-    ...gameRow('👾 *야생 출몰*  채팅하다 보면 가끔 나타나요. 리액션을 제일 먼저 누르면 포획!',
+    ...gameRow('👾 *야생 출몰*  자동을 켜면 몬스터가 나타나요. 리액션을 제일 먼저 누르면 포획!',
       autoButton('spawn')),
     { type: 'divider' },
     { type: 'actions', elements: [button('📕 도감', 'game_dex'), button('🏆 랭킹', 'game_rank')] },
@@ -249,8 +249,8 @@ export async function registerGames(app) {
     const target = text.match(/<@([UW][A-Z0-9]+)/)?.[1]
     if (bomb && user === bomb.holder && target && target !== user && target !== me) passBomb(target)
     if (quiz && text.replace(/\s/g, '') === quiz.answer) solveQuiz(user)
-    // 10분에 한 번까지, 채팅 8번에 한 번꼴로 출몰
-    if (!wild && Date.now() - lastSpawn > 10 * MIN && Math.random() < 1 / 8) spawn()
+    // 야생 자동이 켜져 있을 때만: 10분에 한 번까지, 채팅 8번에 한 번꼴로 덤으로 출몰
+    if (autoOn('spawn') && !wild && Date.now() - lastSpawn > 10 * MIN && Math.random() < 1 / 8) spawn()
   })
 
   // ── 메뉴 ──
