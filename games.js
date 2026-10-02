@@ -59,15 +59,6 @@ const weeklyWins = (user) =>
   db.prepare('select count(*) n from quiz_wins where user = ? and ts > ?').get(user, weekStart()).n
 const dexCount = (user) => db.prepare('select count(distinct emoji) n from dex where user = ?').get(user).n
 
-// 24시간 안에 폭사했으면 💀, 이번 주 퀴즈 1등이면 👑
-function badges(user) {
-  const out = []
-  if (db.prepare('select 1 from deaths where user = ? and ts > ?').get(user, Date.now() - DAY)) out.push('skull')
-  const king = db.prepare('select user from quiz_wins where ts > ? group by user order by count(*) desc limit 1').get(weekStart())
-  if (king?.user === user) out.push('crown')
-  return out
-}
-
 const top5 = (sql, ...args) => db.prepare(sql).all(...args)
 const MEDAL = ['🥇', '🥈', '🥉', '4.', '5.']
 const board = (rows, unit) => rows.map((r, i) => `${MEDAL[i]} <@${r.user}> ${r.n}${unit}`).join('\n') || '아직 없어요'
@@ -75,7 +66,7 @@ const board = (rows, unit) => rows.map((r, i) => `${MEDAL[i]} <@${r.user}> ${r.n
 function rankingText() {
   return [
     '*📕 도감왕*', board(top5('select user, count(distinct emoji) n from dex group by user order by n desc limit 5'), '종'),
-    '', '*🔤 이번 주 퀴즈왕*', board(top5('select user, count(*) n from quiz_wins where ts > ? group by user order by n desc limit 5', weekStart()), '점'),
+    '', '*👑 이번 주 퀴즈왕*', board(top5('select user, count(*) n from quiz_wins where ts > ? group by user order by n desc limit 5', weekStart()), '점'),
     '', '*💀 폭사왕*', board(top5('select user, count(*) n from deaths group by user order by n desc limit 5'), '번'),
   ].join('\n')
 }
@@ -106,9 +97,9 @@ const menu = {
       text: {
         type: 'mrkdwn',
         text: [
-          '💣 *폭탄 돌리기*  폭탄을 받으면 다른 사람을 @멘션해서 넘기세요. 터지면 하루 동안 💀',
+          '💣 *폭탄 돌리기*  폭탄을 받으면 다른 사람을 @멘션해서 넘기세요. 터지면 폭사 기록 +1 💀',
           '👾 *야생 출몰*  채팅하다 보면 가끔 나타나요. 리액션을 제일 먼저 누르면 포획!',
-          '🔤 *초성 퀴즈*  매일 12시에 출제. 채팅으로 정답을 치면 1점, 주간 1등은 👑',
+          '🔤 *초성 퀴즈*  매일 12시에 출제. 채팅으로 정답을 치면 1점, 주간 1등은 퀴즈왕 👑',
           '🎲 *자동 모드*  켜져 있으면 2분마다 셋 중 아무거나 랜덤으로 터져요 (지금 켜짐)',
         ].join('\n'),
       },
@@ -167,7 +158,7 @@ export async function registerGames(app) {
     const { holder, passes } = bomb
     bomb = null
     db.prepare('insert into deaths values (?, ?)').run(holder, Date.now())
-    post(`💥 펑!!! <@${holder}> 님이 폭사했어요 (${passes}번 오갔어요). 24시간 동안 💀가 따라다녀요`)
+    post(`💥 펑!!! <@${holder}> 님이 폭사했어요 (${passes}번 오갔어요) 💀`)
   }
 
   // ── 👾 ──
@@ -250,9 +241,6 @@ export async function registerGames(app) {
   app.message(async ({ message }) => {
     if (message.subtype || message.bot_id) return
     const { user, text = '', ts } = message
-    for (const name of badges(user)) {
-      app.client.reactions.add({ channel: message.channel, timestamp: ts, name }).catch(() => {})
-    }
     if (message.channel !== channel()) return
     seen.set(user, Date.now())
 
