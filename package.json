@@ -1,0 +1,12 @@
+{
+  "name": "emoji-market",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file=.env index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@slack/bolt": "^5.1.0"
+  }
+}

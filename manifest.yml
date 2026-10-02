@@ -1,0 +1,33 @@
+display_information:
+  name: 쾌락실
+  description: 폭탄 돌리기 · 야생 이모지 포획 · 초성 퀴즈 · 이모지 거래소
+features:
+  app_home:
+    home_tab_enabled: true
+    messages_tab_enabled: false
+  bot_user:
+    display_name: thrill
+    always_online: true
+  slash_commands:
+    - command: /game
+      description: 이 채널을 게임 채널로 정하고 게임 메뉴 열기
+      should_escape: false
+oauth_config:
+  scopes:
+    bot:
+      - commands
+      - reactions:read
+      - channels:history
+      - groups:history
+      - chat:write
+      - reactions:write
+settings:
+  event_subscriptions:
+    bot_events:
+      - reaction_added
+      - message.channels
+      - message.groups
+      - app_home_opened
+  interactivity:
+    is_enabled: true
+  socket_mode_enabled: true
