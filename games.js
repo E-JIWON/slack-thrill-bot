@@ -94,36 +94,26 @@ const AUTO_GAP = 20 * SEC // 자동 모드: 한 판 끝나고 다음 판까지
 const AUTO_GAMES = [['bomb', '💣 폭탄'], ['quiz', '🔤 퀴즈'], ['spawn', '👾 야생']]
 const autoOn = (key) => setting(`auto_${key}`) === 'on'
 
+const autoButton = (key) => button(autoOn(key) ? '🎲 자동 켜짐' : '자동 꺼짐', 'auto_toggle', autoOn(key) ? 'primary' : undefined, key)
+const gameRow = (text, ...elements) => [
+  { type: 'section', text: { type: 'mrkdwn', text } },
+  { type: 'actions', elements },
+]
+
+// 게임마다 [지금 하기] [자동 켜짐/꺼짐]을 나란히
 const menu = () => ({
   text: '🕹️ 쾌락실',
   blocks: [
     { type: 'header', text: { type: 'plain_text', text: '🕹️ 쾌락실 개장! 이 채널에서 놀아요' } },
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: [
-          '💣 *폭탄 돌리기*  폭탄을 받으면 다른 사람을 @멘션해서 넘기세요. 터지면 폭사 기록 +1 💀',
-          '👾 *야생 출몰*  채팅하다 보면 가끔 나타나요. 리액션을 제일 먼저 누르면 포획!',
-          '🔤 *초성 퀴즈*  매일 12시에 출제. 채팅으로 정답을 치면 1점, 주간 1등은 퀴즈왕 👑',
-        ].join('\n'),
-      },
-    },
-    {
-      type: 'actions',
-      elements: [
-        button('💣 폭탄 던지기', 'game_bomb', 'danger'),
-        button('🔤 퀴즈 내기', 'game_quiz', 'primary'),
-        button('📕 도감', 'game_dex'),
-        button('🏆 랭킹', 'game_rank'),
-      ],
-    },
-    { type: 'context', elements: [{ type: 'mrkdwn', text: `🎲 *자동 모드*  켜 둔 게임은 한 판 끝나면 ${AUTO_GAP / SEC}초 뒤에 다음 판이 시작돼요` }] },
-    {
-      type: 'actions',
-      elements: AUTO_GAMES.map(([key, label]) =>
-        button(`${label} 자동 ${autoOn(key) ? '켜짐' : '꺼짐'}`, 'auto_toggle', autoOn(key) ? 'primary' : undefined, key)),
-    },
+    ...gameRow('💣 *폭탄 돌리기*  받으면 다른 사람을 @멘션해서 넘기세요. 터지면 폭사 기록 +1 💀',
+      button('💣 지금 던지기', 'game_bomb', 'danger'), autoButton('bomb')),
+    ...gameRow('🔤 *초성 퀴즈*  채팅으로 정답을 치면 1점, 주간 1등은 퀴즈왕 👑',
+      button('🔤 지금 내기', 'game_quiz', 'primary'), autoButton('quiz')),
+    ...gameRow('👾 *야생 출몰*  채팅하다 보면 가끔 나타나요. 리액션을 제일 먼저 누르면 포획!',
+      autoButton('spawn')),
+    { type: 'divider' },
+    { type: 'actions', elements: [button('📕 도감', 'game_dex'), button('🏆 랭킹', 'game_rank')] },
+    { type: 'context', elements: [{ type: 'mrkdwn', text: `🎲 자동이 켜진 게임은 한 판 끝나면 ${AUTO_GAP / SEC}초 뒤에 다음 판이 시작돼요` }] },
   ],
 })
 
