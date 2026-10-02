@@ -257,7 +257,6 @@ export async function registerGames(app) {
   app.command('/game', async ({ command, ack, respond }) => {
     await ack()
     setSetting('channel', command.channel_id)
-    for (const [key] of AUTO_GAMES) setSetting(`auto_${key}`, 'on')
     // 봇이 직접 올려 봐서 실패하면 아직 채널에 없는 것
     const posted = await app.client.chat.postMessage({ channel: command.channel_id, ...menu() }).catch(() => null)
     if (!posted) await respond({ response_type: 'ephemeral', text: '⚠️ 봇이 아직 이 채널에 없어요. `/invite @봇이름`으로 먼저 부르고 `/game`을 다시 쳐 주세요' })
