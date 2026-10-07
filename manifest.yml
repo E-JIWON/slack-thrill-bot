@@ -1,6 +1,6 @@
 display_information:
   name: 쾌락실
-  description: 폭탄 돌리기 · 야생 이모지 포획 · 초성 퀴즈 · 이모지 거래소
+  description: 폭탄 돌리기 · 야생 이모지 포획 · 초성 퀴즈 · 도감 교환
 features:
   app_home:
     home_tab_enabled: true

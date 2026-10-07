@@ -14,7 +14,7 @@ A Slack bot for playing mini-games with friends right in your channel. The name 
 | 👾 Wild Encounter | Turn on auto mode and emoji monsters start showing up. The first person to react catches it; if nobody does within a minute, it runs away. 18 common · 10 rare · 3 legendary, 31 species in total |
 | 🔤 Chosung Quiz | You get the initial consonants (초성) of a Korean lunch menu, e.g. `ㄸㅂㅇ` → 떡볶이. Type the answer in chat within 3 minutes for 1 point. This week's top scorer is the Quiz King 👑 |
 | 🎲 Auto Mode | Toggle it per game. A game with auto mode on starts its next round 20 seconds after the last one ends |
-| 📈 Emoji Exchange | Lives in the bot's App Home tab. A fake stock market where an emoji gets pricier the more it's used in the last 24 hours |
+| 🔁 Monster Trading | Swap a caught monster 1:1 with a friend's. The offer is posted to the channel and the swap happens as soon as they accept. Trading duplicates for new species moves you up the collection ranking |
 
 ## How to play
 
@@ -22,9 +22,10 @@ Type `/game` in a channel. That channel becomes the game channel and the menu sh
 
 - **💣 지금 던지기** (throw now) · **🔤 지금 내기** (ask now) — start a round right away
 - **도감** (collection) · **랭킹** (ranking) — visible only to whoever pressed it
+- **🔁 교환** (trade) — pick a monster to give, a friend, and the monster you want, and a trade offer is posted to the channel
 - **자동 켜짐 / 꺼짐** (auto on / off) — sits next to each game. Each press toggles it, and it turns green when on
 
-A quiz also pops up once a day at noon, whether auto mode is on or not.
+A quiz also pops up once a day at noon, whether auto mode is on or not. The bot's **App Home** tab shows your own collection (❔ for empty slots, ×2 for duplicates).
 
 ## Setup
 

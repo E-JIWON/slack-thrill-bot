@@ -1,4 +1,4 @@
-import { db } from './market.js'
+import { db } from './db.js'
 
 const SEC = 1000
 const MIN = 60 * SEC
@@ -12,7 +12,7 @@ db.exec(`
   create table if not exists deaths (user text, ts integer);
 `)
 
-const setting = (key) => db.prepare('select value from settings where key = ?').get(key)?.value
+export const setting = (key) => db.prepare('select value from settings where key = ?').get(key)?.value
 const setSetting = (key, value) =>
   db.prepare('insert into settings values (?, ?) on conflict (key) do update set value = excluded.value').run(key, value)
 
@@ -60,7 +60,7 @@ const weeklyWins = (user) =>
 const dexCount = (user) => db.prepare('select count(distinct emoji) n from dex where user = ?').get(user).n
 
 const top5 = (sql, ...args) => db.prepare(sql).all(...args)
-const MEDAL = ['🥇', '🥈', '🥉', '4.', '5.']
+export const MEDAL = ['🥇', '🥈', '🥉', '4.', '5.']
 const board = (rows, unit) => rows.map((r, i) => `${MEDAL[i]} <@${r.user}> ${r.n}${unit}`).join('\n') || '아직 없어요'
 
 function rankingText() {
@@ -112,7 +112,7 @@ const menu = () => ({
     ...gameRow('👾 *야생 출몰*  자동을 켜면 몬스터가 나타나요. 리액션을 제일 먼저 누르면 포획!',
       autoButton('spawn')),
     { type: 'divider' },
-    { type: 'actions', elements: [button('📕 도감', 'game_dex'), button('🏆 랭킹', 'game_rank')] },
+    { type: 'actions', elements: [button('📕 도감', 'game_dex'), button('🔁 교환', 'trade_open'), button('🏆 랭킹', 'game_rank')] },
     { type: 'context', elements: [{ type: 'mrkdwn', text: `🎲 자동이 켜진 게임은 한 판 끝나면 ${AUTO_GAP / SEC}초 뒤에 다음 판이 시작돼요` }] },
   ],
 })
