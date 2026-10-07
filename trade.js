@@ -90,7 +90,18 @@ const RESULT = {
   canceled: '↩️ *교환 취소*',
 }
 
-const tradeModal = (user, channel) => ({
+// 받고 싶은 몬스터 칸은 친구를 고른 뒤에, 그 친구가 가진 것만 보여 줌
+const wantBlock = (friend) => {
+  if (!friend) return { type: 'context', elements: [md('친구를 고르면 그 친구가 가진 몬스터가 나와요')] }
+  const theirs = collection(friend)
+  if (!theirs.length) return { type: 'context', elements: [md(`<@${friend}> 님은 아직 잡은 몬스터가 없어요`)] }
+  return {
+    type: 'input', block_id: 'want', label: { type: 'plain_text', text: '받고 싶은 몬스터' },
+    element: { type: 'static_select', action_id: 'v', options: theirs.map((c) => option(c.emoji, c.n)) },
+  }
+}
+
+const tradeModal = (user, channel, friend) => ({
   type: 'modal',
   callback_id: 'trade_submit',
   private_metadata: channel,
@@ -104,12 +115,10 @@ const tradeModal = (user, channel) => ({
     },
     {
       type: 'input', block_id: 'to', label: { type: 'plain_text', text: '교환할 친구' },
+      dispatch_action: true, // 친구를 고르는 순간 아래 칸을 다시 그림
       element: { type: 'users_select', action_id: 'v' },
     },
-    {
-      type: 'input', block_id: 'want', label: { type: 'plain_text', text: '받고 싶은 몬스터' },
-      element: { type: 'static_select', action_id: 'v', options: MONSTERS.map((m) => option(m.emoji)) },
-    },
+    wantBlock(friend),
     { type: 'context', elements: [md('제안은 게임 채널에 올라가고, 친구가 수락하면 바로 맞바꿔요')] },
   ],
 })
@@ -148,8 +157,19 @@ export function registerTrade(app) {
     await client.views.open({ trigger_id: body.trigger_id, view: tradeModal(body.user.id, body.channel?.id ?? setting('channel')) })
   })
 
+  // 친구를 고르면 그 친구의 몬스터 목록으로 창을 다시 그림 (고른 값은 슬랙이 유지)
+  app.action({ block_id: 'to', action_id: 'v' }, async ({ ack, body, action, client }) => {
+    await ack()
+    await client.views.update({
+      view_id: body.view.id,
+      hash: body.view.hash,
+      view: tradeModal(body.user.id, body.view.private_metadata, action.selected_user),
+    }).catch(warn)
+  })
+
   app.view('trade_submit', async ({ ack, body, view, client }) => {
     const v = view.state.values
+    if (!v.want) return ack({ response_action: 'errors', errors: { to: '몬스터를 가진 친구를 골라 주세요' } })
     const from = body.user.id
     const result = propose(from, v.to.v.selected_user, v.give.v.selected_option.value, v.want.v.selected_option.value)
     if (result.error) return ack({ response_action: 'errors', errors: { [result.field]: result.error } })
