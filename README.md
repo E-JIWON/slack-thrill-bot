@@ -2,6 +2,8 @@
 
 **한국어** · [English](README.en.md)
 
+[![License](https://img.shields.io/github/license/E-JIWON/slack-thrill-bot?color=2ea043)](LICENSE) ![Slack Bolt](https://img.shields.io/badge/Slack-Bolt-4A154B?logo=slack&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white) ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+
 슬랙 채널에서 친구들이랑 노는 미니게임 봇이에요.
 
 ![쾌락실 플레이 화면: 초성 퀴즈 정답, 야생 몬스터 포획, 폭탄 넘기기, 랭킹](docs/demo.gif)
