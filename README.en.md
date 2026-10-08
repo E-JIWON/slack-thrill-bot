@@ -2,6 +2,8 @@
 
 [한국어](README.md) · **English**
 
+[![License](https://img.shields.io/github/license/E-JIWON/slack-thrill-bot?color=2ea043)](LICENSE) ![Slack Bolt](https://img.shields.io/badge/Slack-Bolt-4A154B?logo=slack&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white) ![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)
+
 A Slack bot for playing mini-games with friends right in your channel. The name is a pun on 오락실 (arcade) and 쾌락 (pleasure) — roughly "the thrill room".
 
 ![Kwaeraksil in action: solving a chosung quiz, catching a wild monster, passing the bomb, and checking the ranking](docs/demo.gif)
